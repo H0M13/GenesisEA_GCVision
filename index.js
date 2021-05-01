@@ -1,38 +1,22 @@
 const { Requester } = require("@chainlink/external-adapter");
-const Rekognition = require("node-rekognition");
-const pinataSDK = require("@pinata/sdk");
+const vision = require("@google-cloud/vision");
 const https = require("https");
 const Stream = require("stream").Transform;
-const bs58 = require("bs58");
 
 const createRequest = async (input, callback) => {
-  const pinata = pinataSDK(
-    process.env.PINATA_API_KEY,
-    process.env.PINATA_SECRET_API_KEY
-  );
-
-  const AWSParameters = {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
-  };
-
-  const rekognition = new Rekognition(AWSParameters);
+  const visionClient = new vision.ImageAnnotatorClient({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    keyFilename: process.env.GOOGLE_CLOUD_KEY_FILENAME
+  });
 
   return performRequest({
     input,
     callback,
-    pinata,
-    rekognition
-  })
-}
+    visionClient
+  });
+};
 
-const performRequest = ({
-  input,
-  callback,
-  pinata,
-  rekognition
-}) => {
+const performRequest = ({ input, callback, visionClient }) => {
   const { data, id: jobRunID } = input;
 
   if (!data) {
@@ -50,9 +34,8 @@ const performRequest = ({
   if (hash === undefined) {
     callback(500, Requester.errored(jobRunID, "Content hash required"));
   } else {
-    const url = `https://gateway.ipfs.io/ipfs/${hash}`;
+    const url = `https://${process.env.IPFS_GATEWAY_URL}/ipfs/${hash}`;
 
-    console.log(url);
     try {
       https
         .request(url, function(response) {
@@ -63,28 +46,43 @@ const performRequest = ({
           });
 
           response.on("end", function() {
-            requestModerationLabels(imgBytesStream.read());
+            requestSafeSearchLabels(imgBytesStream.read());
           });
         })
         .end();
 
-      const requestModerationLabels = async imgBytes => {
+      const requestSafeSearchLabels = async imgBytes => {
         try {
-          const moderationLabels = await rekognition.detectModerationLabels(
-            imgBytes
-          );
+          const [result] = await visionClient.safeSearchDetection(imgBytes);
+
+          const detections = result.safeSearchAnnotation;
+
+          const { adult, violence, racy } = detections;
 
           const response = {
-            data: moderationLabels
+            data: {
+              adult,
+              violence,
+              racy
+            }
           };
 
-          const pinataResponse = await pinata.pinJSONToIPFS(response.data);
+          const likelihoodToConfidenceMapping = {
+            UNKNOWN: "",
+            VERY_UNLIKELY: "0",
+            UNLIKELY: "20",
+            POSSIBLE: "50",
+            LIKELY: "80",
+            VERY_LIKELY: "100"
+          };
 
-          const { IpfsHash } = pinataResponse;
-
-          const asBytes32 = getBytes32FromIpfsHash(IpfsHash);
-
-          response.data.result = asBytes32;
+          response.data.result = [
+            likelihoodToConfidenceMapping[adult],
+            likelihoodToConfidenceMapping[racy],
+            likelihoodToConfidenceMapping[violence],
+            "",
+            ""
+          ].join(",");
 
           callback(200, Requester.success(jobRunID, response));
         } catch (error) {
@@ -97,11 +95,7 @@ const performRequest = ({
       callback(500, Requester.errored(jobRunID, error));
     }
   }
-}
-
-const getBytes32FromIpfsHash = (ipfsListing) => {
-  return "0x"+bs58.decode(ipfsListing).slice(2).toString('hex')
-}
+};
 
 // This is a wrapper to allow the function to work with
 // GCP Functions

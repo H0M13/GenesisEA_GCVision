@@ -1,18 +1,16 @@
-# IPFS + Amazon Rekognition Image Moderation External Adapter
+# TrueSight genesis external adapter - Google Cloud Vision
 
-This external adapter downloads image bytes from [IPFS](https://ipfs.io/) given the content hash and requests image moderation labels from the [Amazon Rekognition](https://aws.amazon.com/rekognition/) cloud-based computer vision platform. The moderation labels are pinned to IPFS using [Pinata](https://pinata.cloud/) and a bytes32 hex string is returned from which the base58 encoded IPFS content hash [can be reconstructed](https://ethereum.stackexchange.com/questions/17094/how-to-store-ipfs-hash-using-bytes32). Currently [bytes32 is the maximum response size](https://docs.chain.link/docs/make-a-http-get-request#response-types) for the result of a Chainlink job.
+This external adapter downloads image bytes from [IPFS](https://ipfs.io/) given the content hash and requests image moderation labels from the [Google Cloud Vision API](https://cloud.google.com/vision).
 
 ## Environment variables
 
-You will need an AWS account to be able to make requests to Amazon Rekognition. See [Amazon's documentation](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/) for help on setting up an account.
+You will need to set up a GCP project and service account credentials to be able to make requests to the API. See [Google's documentation](https://cloud.google.com/vision/docs/libraries#setting_up_authentication) for help on setting up authentication.
 
-| Variable                |              | Description                          |            Example             |
-| ----------------------- | :----------: | ------------------------------------ | :----------------------------: |
-| `AWS_ACCESS_KEY_ID`     | **Required** | The ID of your AWS access key        |        `ABCDEFGABCDEFG`        |
-| `AWS_SECRET_ACCESS_KEY` | **Required** | Your AWS secret access key           | `AbCdEfGaBcDeFgAbCdEfGaBcDeFg` |
-| `AWS_REGION`            | **Required** | The AWS region you would like to use |          `eu-west-2`           |
-| `PINATA_API_KEY`            | **Required** | Your Pinata API key |          `0298f5aa704402e9a63a`           |
-| `PINATA_SECRET_API_KEY`            | **Required** | Your Pinata secret API key |          `91f9d07d04da2970a43e0ecf44f9fe64504a064e0537c031668c91399bcc4392`           |
+| Variable                    |              | Description                                                       |         Example         |
+| --------------------------- | :----------: | ----------------------------------------------------------------- | :---------------------: |
+| `GOOGLE_CLOUD_PROJECT_ID`   | **Required** | Your Google Cloud project ID                                      | `angelic-goldfish-123`  |
+| `GOOGLE_CLOUD_KEY_FILENAME` | **Required** | The file containing your Google Cloud service account credentials | `/path/to/keyfile.json` |
+| `IPFS_GATEWAY_URL`          | **Required** | The IPFS gateway you would like to use                            |        `ipfs.io`        |
 
 ## Example request
 
@@ -24,24 +22,14 @@ You will need an AWS account to be able to make requests to Amazon Rekognition. 
 
 ```json
 {
-  "jobRunID": "1",
+  "jobRunID": 0,
   "data": {
-    "ModerationLabels": [
-      {
-        "Confidence": 99.92990112304688,
-        "Name": "Middle Finger",
-        "ParentName": "Rude Gestures"
-      },
-      {
-        "Confidence": 99.92990112304688,
-        "Name": "Rude Gestures",
-        "ParentName": ""
-      }
-    ],
-    "ModerationModelVersion": "4.0",
-    "result": "0xafacbc7a25ed1d9a9c4af37bc972fb2b599f5cc6496fe84ffd5417ff34e3bb62"
+    "adult": "UNLIKELY",
+    "violence": "VERY_UNLIKELY",
+    "racy": "VERY_LIKELY",
+    "result": "20,100,0,,"
   },
-  "result": "0xafacbc7a25ed1d9a9c4af37bc972fb2b599f5cc6496fe84ffd5417ff34e3bb62"
+  "result": "20,100,0,,"
 }
 ```
 
