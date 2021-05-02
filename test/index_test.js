@@ -2,32 +2,22 @@ const assert = require("chai").assert;
 const performRequest = require("../index.js").performRequest;
 const sinon = require("sinon");
 require("dotenv").config();
-const Rekognition = require("node-rekognition");
+const vision = require("@google-cloud/vision");
 
-const createRekognitionStub = () =>
-  sinon.createStubInstance(Rekognition, {
-    detectModerationLabels: sinon.stub().returns({
-      ModerationLabels: [
-        {
-          Confidence: 99.92990112304688,
-          Name: "Middle Finger",
-          ParentName: "Rude Gestures"
-        },
-        {
-          Confidence: 99.92990112304688,
-          Name: "Rude Gestures",
-          ParentName: ""
+const createVisionStub = () =>
+  sinon.createStubInstance(vision.ImageAnnotatorClient, {
+    safeSearchDetection: sinon.stub().returns([
+      {
+        safeSearchAnnotation: {
+          adult: "VERY_LIKELY",
+          racy: "UNLIKELY",
+          medical: "UNLIKELY",
+          spoof: "UNLIKELY",
+          violence: "UNLIKELY"
         }
-      ],
-      ModerationModelVersion: "4.0"
-    })
+      }
+    ])
   });
-
-const createPinataStub = () => ({
-  pinJSONToIPFS: sinon.stub().returns({
-    IpfsHash: "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u"
-  })
-});
 
 describe("performRequest", () => {
   const jobID = "1";
@@ -45,9 +35,8 @@ describe("performRequest", () => {
 
     requests.forEach(req => {
       it(`${req.name}`, done => {
-        var pinata = createPinataStub();
 
-        var rekognitionStub = createRekognitionStub();
+        var visionStub = createVisionStub();
 
         performRequest({
           input: req.testData,
@@ -57,8 +46,7 @@ describe("performRequest", () => {
             assert.isNotEmpty(data.data);
             done();
           },
-          pinata: pinata,
-          rekognition: rekognitionStub
+          visionClient: visionStub
         });
       });
     });
