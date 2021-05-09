@@ -6,11 +6,12 @@ This external adapter downloads image bytes from [IPFS](https://ipfs.io/) given 
 
 You will need to set up a GCP project and service account credentials to be able to make requests to the API. See [Google's documentation](https://cloud.google.com/vision/docs/libraries#setting_up_authentication) for help on setting up authentication.
 
-| Variable                    |              | Description                                                       |         Example         |
-| --------------------------- | :----------: | ----------------------------------------------------------------- | :---------------------: |
-| `GOOGLE_CLOUD_PROJECT_ID`   | **Required** | Your Google Cloud project ID                                      | `angelic-goldfish-123`  |
-| `GOOGLE_CLOUD_KEY_FILENAME` | **Required** | The file containing your Google Cloud service account credentials | `/path/to/keyfile.json` |
-| `IPFS_GATEWAY_URL`          | **Required** | The IPFS gateway you would like to use                            |        `ipfs.io`        |
+| Variable                    |              | Description                                                              |         Example         |
+| --------------------------- | :----------: | ------------------------------------------------------------------------ | :---------------------: |
+| `GOOGLE_CLOUD_PROJECT_ID`   | **Required** | Your Google Cloud project ID                                             | `angelic-goldfish-123`  |
+| `GOOGLE_CLOUD_KEY_FILENAME` | **Required** | The file containing your Google Cloud service account credentials        | `/path/to/keyfile.json` |
+| `IPFS_GATEWAY_URL`          | **Required** | The IPFS gateway you would like to use                                   |        `ipfs.io`        |
+| `IPFS_GATEWAY_SSL`          | **Optional** | Access the gateway via SSL (https)? True/false (Default behaviour: true) |         `true`          |
 
 ## Example request
 
